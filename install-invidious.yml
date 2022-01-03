@@ -1,0 +1,96 @@
+# install invidious
+---
+  - hosts: '{{ target }}'
+    remote_user: '{{ remote_user }}'
+    become: true
+
+    tasks:
+      - name: Install postgres and dependencies
+        apt: "name={{ item }} state=present"
+        with_items:
+          - libssl-dev
+          - libxml2-dev
+          - libyaml-dev
+          - libgmp-dev
+          - libreadline-dev
+          - postgresql
+          - librsvg2-bin
+          - libsqlite3-dev
+          - zlib1g-dev
+          - libpcre3-dev
+          - libevent-dev
+          - acl
+          - nginx
+      - name: Install shards
+        shell: curl -fsSL https://crystal-lang.org/install.sh | bash
+        become: yes
+      - name: Add invidious user
+        user:
+          name: invidious
+          uid: 1005
+      - name: Clone invidious repo
+        become: yes
+        become_user: invidious
+        git:
+          repo: https://github.com/iv-org/invidious
+          dest: /home/invidious/invidious/
+      - name: Configure postgres - Drop user if exists
+        become: yes
+        become_user: postgres
+        command: psql -c "DROP USER IF EXISTS {{ pg_user }};"
+      - name: Configure postgres - Create user
+        become: yes
+        become_user: postgres
+        command: psql -c "CREATE USER {{ pg_user }} WITH PASSWORD '{{ password }}';"
+      - name: Create postgres database
+        become: yes
+        become_user: postgres
+        command: createdb -O {{ pg_user }} invidious
+      - name: Import SQL Files
+        become: yes
+        become_user: postgres
+        shell: psql -h 127.0.0.1 -d invidious -U {{ pg_user }} < /home/invidious/invidious/config/sql/'{{ item }}'
+        with_items:
+          - channels.sql
+          - videos.sql
+          - channel_videos.sql
+          - users.sql
+          - session_ids.sql
+          - nonces.sql
+          - annotations.sql
+          - playlists.sql
+          - playlist_videos.sql
+        environment:
+          PGPASSWORD: '{{ password }}'
+      - name: Prep and build invidious (this step takes some time, sorry)
+        become: yes
+        become_user: invidious
+        shell: "cd /home/invidious/invidious && shards update && shards install && crystal build ./src/invidious.cr --release"
+      - name: Place config file
+        template:
+          src: ../templates/config.yml
+          dest: /home/invidious/invidious/config/config.yml
+      - name: Place service file
+        become: yes
+        shell: "cp /home/invidious/invidious/invidious.service /etc/systemd/system/invidious.service"
+      - name: Enable invidious systemd service
+        ansible.builtin.systemd:
+          name: invidious
+          state: started
+          daemon_reload: yes
+          enabled: yes
+      - name: Set up logrotate
+        template:
+          src: ../templates/invidious.logrotate
+          dest: /etc/logrotate.d/invidious.logrotate
+          mode: 644
+      - name: Set up reverse proxy
+        template:
+          src: ../templates/default
+          dest: /etc/nginx/sites-available/default
+          mode: 644
+      - name: Restart nginx
+        systemd:
+          name: nginx
+          state: restarted
+          enabled: yes
