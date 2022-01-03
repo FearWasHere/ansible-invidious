@@ -41,7 +41,7 @@
       - name: Configure postgres - Create user
         become: yes
         become_user: postgres
-        command: psql -c "CREATE USER {{ pg_user }} WITH PASSWORD '{{ password }}';"
+        command: psql -c "CREATE USER {{ pg_user }} WITH PASSWORD '{{ pg_pass }}';"
       - name: Create postgres database
         become: yes
         become_user: postgres
@@ -61,7 +61,7 @@
           - playlists.sql
           - playlist_videos.sql
         environment:
-          PGPASSWORD: '{{ password }}'
+          PGPASSWORD: '{{ pg_pass }}'
       - name: Prep and build invidious (this step takes some time, sorry)
         become: yes
         become_user: invidious
