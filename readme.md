@@ -1,5 +1,5 @@
 ### What this does
-this will install invidious (https://github.com/iv-org/invidious) and its dependencies, as well as setting up an nginx reverse proxy, so you can be lazy like me and not have to remember that it runs on port 3000.  sure, NOW i remember that.
+this will install [invidious] https://github.com/iv-org/invidious and its dependencies, as well as setting up an nginx reverse proxy, so you can be lazy like me and not have to remember that it runs on port 3000.  sure, NOW i remember that.
 
 ### Prerequisites
 * ansible
