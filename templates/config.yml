@@ -10,7 +10,7 @@
 ##
 db:
   user: '{{ pg_user }}'
-  password: '{{ password }}'
+  password: '{{ pg_pass }}'
   host: localhost
   port: 5432
   dbname: invidious

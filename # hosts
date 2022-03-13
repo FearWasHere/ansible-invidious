@@ -1,0 +1,4 @@
+# hosts
+
+[invidious]
+10.17.1.12  ansible_become_pass='{{ become_pass }}'
